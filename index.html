@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>USI Vienna - improved Search & Filter</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+
+    <style>
+        .full { color: #ef4444; font-weight: bold; }
+        .available { color: #22c55e; font-weight: bold; }
+
+        /* Neu ausbalancierte Spaltenbreiten */
+        .col-name { width: 30%; min-width: 220px; font-weight: 700; }
+        .col-instructor { width: 15%; min-width: 130px; } /* Größer gemacht */
+        .col-location { width: 10%; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* Kleiner gemacht */
+
+        /* Header Styling */
+        table.dataTable thead th {
+            background-color: #4f46e5 !important;
+            color: white !important;
+            border: none !important;
+            padding: 14px 10px !important;
+            text-align: left;
+        }
+
+        /* Tags & Badges */
+        .block-tag { background-color: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 6px; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; }
+        .multiple-tag { color: #6366f1; font-style: italic; font-weight: 600; }
+
+        /* Versteckt das Standard-Suchfeld (da wir unser eigenes in der Filterbar haben) */
+        .dataTables_filter { display: none; }
+    </style>
+</head>
+<body class="bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
+
+    <div class="max-w-full mx-auto bg-white p-6 md:p-10 rounded-[2.5rem] shadow-2xl border border-indigo-50">
+
+        <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+            <div>
+                <h1 class="text-4xl font-black text-indigo-900 tracking-tighter">Improved USI course finder</h1>
+                <p class="text-slate-400 text-sm font-medium">SS26</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4 mb-10 bg-indigo-50 p-8 rounded-3xl border border-indigo-100 shadow-sm">
+
+            <div class="lg:col-span-2">
+                <label class="block text-xs font-black text-indigo-600 mb-2 uppercase tracking-widest">Search Course</label>
+                <input type="text" id="custom-search" placeholder="Filter by name..." class="w-full p-2.5 rounded-xl border-indigo-200 shadow-sm focus:ring-2 focus:ring-indigo-500 transition">
+            </div>
+
+            <div>
+                <label class="block text-xs font-black text-indigo-600 mb-2 uppercase tracking-widest">Day</label>
+                <select id="filter-day" class="w-full p-2.5 rounded-xl border-indigo-200 shadow-sm">
+                    <option value="">All Days</option>
+                    <option value="Monday">Monday</option>
+                    <option value="Tuesday">Tuesday</option>
+                    <option value="Wednesday">Wednesday</option>
+                    <option value="Thursday">Thursday</option>
+                    <option value="Friday">Friday</option>
+                    <option value="Saturday">Saturday</option>
+                    <option value="Sunday">Sunday</option>
+                    <option value="Block">Block</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-black text-indigo-600 mb-2 uppercase tracking-widest">Available from</label>
+                <input type="time" id="filter-start-after" class="w-full p-2.5 rounded-xl border-indigo-200 shadow-sm">
+            </div>
+
+            <div>
+                <label class="block text-xs font-black text-indigo-600 mb-2 uppercase tracking-widest">Until</label>
+                <input type="time" id="filter-end-before" class="w-full p-2.5 rounded-xl border-indigo-200 shadow-sm">
+            </div>
+
+            <div class="flex items-end">
+                <button id="btn-free" class="w-full bg-indigo-600 text-white p-3 rounded-xl font-bold hover:bg-indigo-700 transition active:scale-95 shadow-md">
+                    Free Only
+                </button>
+            </div>
+
+            <div class="flex items-end">
+                <button id="btn-reset" class="w-full bg-white text-slate-500 border border-slate-200 p-3 rounded-xl font-bold hover:bg-slate-100 transition">
+                    Reset
+                </button>
+            </div>
+        </div>
+
+        <table id="usiTable" class="display w-full text-sm border-none">
+            <thead>
+                <tr>
+                    <th class="rounded-tl-2xl">ID</th>
+                    <th>Course Name</th>
+                    <th>Day</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th>Instructor</th>
+                    <th>Location</th>
+                    <th>Spots</th>
+                    <th class="rounded-tr-2xl">Price</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100"></tbody>
+        </table>
+    </div>
+
+    <script>
+        $(document).ready(function() {
+            const sortOrder = { 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 7, 'Block': 8, 'N/A': 9 };
+            const dayMap = { 'Montag': 'Monday', 'Dienstag': 'Tuesday', 'Mittwoch': 'Wednesday', 'Donnerstag': 'Thursday', 'Freitag': 'Friday', 'Samstag': 'Saturday', 'Sonntag': 'Sunday' };
+
+            const table = $('#usiTable').DataTable({
+                ajax: { url: 'usi_data_complete.json', dataSrc: '' },
+                dom: 'lrtip',
+                order: [[1, 'asc']], // Standard-Sortierung nach Kursname
+                columns: [
+                    { data: 'kursnummer', className: 'font-mono text-slate-400 text-xs' },
+                    {
+                        data: 'titel',
+                        className: 'col-name',
+                        render: (d, t, r) => `<a href="${r.link}" target="_blank" title="${d}" class="text-indigo-600 hover:text-orange-500 transition">${d}</a>`
+                    },
+                    {
+                        data: 'wochentag',
+                        render: function(data, type) {
+                            let translated = data.split(', ').map(day => dayMap[day] || day).join(', ');
+                            if (type === 'sort') return sortOrder[translated.split(', ')[0]] || 99;
+                            return data === "Block" ? `<span class="block-tag">${data}</span>` : translated;
+                        }
+                    },
+                    {
+                        data: 'beginn',
+                        render: (d, t, r) => (r.wochentag === "Block" || d === "Multiple") ? `<span class="italic text-indigo-400">${d}</span>` : `<strong>${d}</strong>`
+                    },
+                    { data: 'ende', render: (d, t, r) => (r.wochentag === "Block" || d === "Multiple") ? "" : d },
+                    {
+                        data: 'lehrer',
+                        className: 'col-instructor' // Schriftgröße jetzt normal durch Wegfall von extra CSS-Regel
+                    },
+                    {
+                        data: 'ort',
+                        className: 'col-location',
+                        render: (d) => `<span title="${d}">${d}</span>`
+                    },
+                    {
+                        data: null,
+                        render: (d) => `<span class="${d.angemeldet >= d.max_teilnehmer ? 'full' : 'available'}">${d.angemeldet} / ${d.max_teilnehmer}</span>`
+                    },
+                    {
+                        data: 'preis3',
+                        type: 'num',
+                        render: function(data, type, row) {
+                            if (type === 'sort') return parseFloat(data) || 0;
+                            return `<span class="font-mono text-xs font-semibold text-slate-600">${row.preis1}/${row.preis2}/${row.preis3}</span>`;
+                        }
+                    }
+                ],
+                pageLength: 25
+            });
+
+            // Eigene Suche
+            $('#custom-search').on('keyup', function() {
+                table.search(this.value).draw();
+            });
+
+            // Filter-Logik
+            $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
+                const dayFilter = $('#filter-day').val();
+                const myStart = $('#filter-start-after').val();
+                const myEnd = $('#filter-end-before').val();
+                const onlyFree = $('#btn-free').hasClass('active');
+
+                const rowDay = data[2];
+                const rowStart = data[3];
+                const rowEnd = data[4];
+                const spots = data[7].split(' / ');
+                const isFull = parseInt(spots[0]) >= parseInt(spots[1]);
+
+                if (dayFilter && !rowDay.includes(dayFilter)) return false;
+                if (onlyFree && isFull) return false;
+
+                if (rowStart !== "Block" && rowStart !== "Multiple" && rowStart !== "N/A") {
+                    if (myStart && rowStart < myStart) return false;
+                    if (myEnd && rowEnd > myEnd) return false;
+                } else if (myStart || myEnd) {
+                    return false;
+                }
+                return true;
+            });
+
+            $('#filter-day, #filter-start-after, #filter-end-before').on('change', () => table.draw());
+            $('#btn-free').on('click', function() { $(this).toggleClass('active bg-green-600 bg-indigo-600'); table.draw(); });
+            $('#btn-reset').on('click', function() {
+                $('#filter-day, #filter-start-after, #filter-end-before, #custom-search').val('');
+                $('#btn-free').removeClass('active bg-green-600').addClass('bg-indigo-600');
+                table.search('').draw();
+            });
+        });
+    </script>
+</body>
+</html>
