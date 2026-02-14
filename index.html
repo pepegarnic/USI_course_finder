@@ -2,203 +2,171 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>USI Vienna - improved Search & Filter</title>
-
+    <title>Improved USI course finder SS26</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
-
     <style>
         .full { color: #ef4444; font-weight: bold; }
         .available { color: #22c55e; font-weight: bold; }
-
-        /* Neu ausbalancierte Spaltenbreiten */
-        .col-name { width: 30%; min-width: 220px; font-weight: 700; }
-        .col-instructor { width: 15%; min-width: 130px; } /* Größer gemacht */
-        .col-location { width: 10%; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } /* Kleiner gemacht */
-
-        /* Header Styling */
-        table.dataTable thead th {
-            background-color: #4f46e5 !important;
-            color: white !important;
-            border: none !important;
-            padding: 14px 10px !important;
-            text-align: left;
-        }
-
-        /* Tags & Badges */
-        .block-tag { background-color: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 6px; font-weight: 800; font-size: 0.7rem; text-transform: uppercase; }
-        .multiple-tag { color: #6366f1; font-style: italic; font-weight: 600; }
-
-        /* Versteckt das Standard-Suchfeld (da wir unser eigenes in der Filterbar haben) */
+        .col-name { width: 25%; font-weight: 700; }
+        .col-dist { width: 6%; font-weight: 800; color: #4f46e5; text-align: center; }
+        .click-filter { cursor: pointer; color: #000; text-decoration: underline; text-underline-offset: 3px; }
+        .click-filter:hover { color: #4f46e5; }
+        table.dataTable thead th { background-color: #4f46e5 !important; color: white !important; text-align: left; border: none !important; }
+        .v-line { width: 1px; background-color: #cbd5e1; margin: 0 0.8rem; }
         .dataTables_filter { display: none; }
+        .checkbox-item { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.75rem; padding: 1px 4px; border-radius: 4px; }
+        .checkbox-item:hover { background-color: #e0e7ff; }
+        .time-select { width: 75px; padding: 4px; border-radius: 8px; border: 1px solid #c7d2fe; font-size: 0.8rem; font-weight: 600; }
+        .online-tag { background-color: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-weight: bold; font-size: 0.7rem; }
     </style>
 </head>
-<body class="bg-slate-50 p-4 md:p-8 font-sans text-slate-900">
+<body class="bg-slate-50 p-4 md:p-6 font-sans text-slate-900">
 
     <div class="max-w-full mx-auto bg-white p-6 md:p-10 rounded-[2.5rem] shadow-2xl border border-indigo-50">
+        <h1 class="text-3xl font-black text-indigo-900 mb-8 tracking-tighter">Improved USI course finder SS26</h1>
 
-        <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
-            <div>
-                <h1 class="text-4xl font-black text-indigo-900 tracking-tighter">Improved USI course finder</h1>
-                <p class="text-slate-400 text-sm font-medium">SS26</p>
+        <div class="bg-indigo-50 p-6 rounded-3xl border border-indigo-100 shadow-sm mb-8">
+            <div class="flex flex-col xl:flex-row gap-8 items-start">
+
+                <div class="flex-none w-full xl:w-1/4 space-y-4">
+                    <div>
+                        <label class="block text-xs font-black text-indigo-600 mb-1 uppercase tracking-widest">Search Course</label>
+                        <input type="text" id="custom-search" placeholder="Course, Instructor, Place..." class="w-full p-2 rounded-xl border-indigo-200 shadow-sm">
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] font-black text-indigo-600 uppercase">Start from:</span>
+                        <select id="filter-start-after" class="time-select"></select>
+                        <span class="text-[10px] font-black text-indigo-600 uppercase ml-2">End until:</span>
+                        <select id="filter-end-before" class="time-select"></select>
+                    </div>
+                    <label class="flex items-center gap-2 cursor-pointer group w-max">
+                        <input type="checkbox" id="check-free" class="w-4 h-4 rounded border-indigo-300 text-indigo-600">
+                        <span class="text-xs font-bold text-indigo-900">Free spots only</span>
+                    </label>
+                </div>
+
+                <div class="flex-none">
+                    <label class="block text-xs font-black text-indigo-600 mb-2 uppercase tracking-widest">Districts</label>
+                    <div class="flex">
+                        <div class="space-y-0.5"><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="1."> 1.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="2."> 2.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="3."> 3.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="4."> 4.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="5."> 5.</label></div>
+                        <div class="v-line self-stretch"></div>
+                        <div class="space-y-0.5"><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="6."> 6.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="7."> 7.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="8."> 8.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="9."> 9.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="10."> 10.</label></div>
+                        <div class="v-line self-stretch"></div>
+                        <div class="space-y-0.5"><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="11."> 11.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="12."> 12.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="13."> 13.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="14."> 14.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="15."> 15.</label></div>
+                        <div class="v-line self-stretch"></div>
+                        <div class="space-y-0.5"><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="16."> 16.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="17."> 17.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="18."> 18.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="19."> 19.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="20."> 20.</label></div>
+                        <div class="v-line self-stretch"></div>
+                        <div class="space-y-0.5"><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="21."> 21.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="22."> 22.</label><label class="checkbox-item"><input type="checkbox" class="dist-checkbox" value="23."> 23.</label><label class="checkbox-item font-bold text-indigo-600"><input type="checkbox" class="dist-checkbox" value="Not in Vienna"> Outside</label><label class="checkbox-item font-bold text-green-600"><input type="checkbox" class="dist-checkbox" value="Online"> Online</label></div>
+                    </div>
+                </div>
+
+                <div class="flex-none">
+                    <label class="block text-xs font-black text-indigo-600 mb-2 uppercase tracking-widest">Days</label>
+                    <div class="flex">
+                        <div class="space-y-0.5">
+                            <label class="checkbox-item"><input type="checkbox" class="day-checkbox" value="Monday"> Mon</label>
+                            <label class="checkbox-item"><input type="checkbox" class="day-checkbox" value="Tuesday"> Tue</label>
+                            <label class="checkbox-item"><input type="checkbox" class="day-checkbox" value="Wednesday"> Wed</label>
+                            <label class="checkbox-item"><input type="checkbox" class="day-checkbox" value="Thursday"> Thu</label>
+                        </div>
+                        <div class="v-line self-stretch"></div>
+                        <div class="space-y-0.5">
+                            <label class="checkbox-item"><input type="checkbox" class="day-checkbox" value="Friday"> Fri</label>
+                            <label class="checkbox-item"><input type="checkbox" class="day-checkbox" value="Saturday"> Sat</label>
+                            <label class="checkbox-item"><input type="checkbox" class="day-checkbox" value="Sunday"> Sun</label>
+                            <label class="checkbox-item font-bold text-indigo-600"><input type="checkbox" class="day-checkbox" value="Block,N/A"> Block</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="xl:ml-auto self-end">
+                    <button id="btn-reset" class="bg-white border px-4 py-2 rounded-xl font-bold hover:bg-slate-100 transition shadow-sm">Reset</button>
+                </div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4 mb-10 bg-indigo-50 p-8 rounded-3xl border border-indigo-100 shadow-sm">
-
-            <div class="lg:col-span-2">
-                <label class="block text-xs font-black text-indigo-600 mb-2 uppercase tracking-widest">Search Course</label>
-                <input type="text" id="custom-search" placeholder="Filter by name..." class="w-full p-2.5 rounded-xl border-indigo-200 shadow-sm focus:ring-2 focus:ring-indigo-500 transition">
-            </div>
-
-            <div>
-                <label class="block text-xs font-black text-indigo-600 mb-2 uppercase tracking-widest">Day</label>
-                <select id="filter-day" class="w-full p-2.5 rounded-xl border-indigo-200 shadow-sm">
-                    <option value="">All Days</option>
-                    <option value="Monday">Monday</option>
-                    <option value="Tuesday">Tuesday</option>
-                    <option value="Wednesday">Wednesday</option>
-                    <option value="Thursday">Thursday</option>
-                    <option value="Friday">Friday</option>
-                    <option value="Saturday">Saturday</option>
-                    <option value="Sunday">Sunday</option>
-                    <option value="Block">Block</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-xs font-black text-indigo-600 mb-2 uppercase tracking-widest">Starting from</label>
-                <input type="time" id="filter-start-after" class="w-full p-2.5 rounded-xl border-indigo-200 shadow-sm">
-            </div>
-
-            <div>
-                <label class="block text-xs font-black text-indigo-600 mb-2 uppercase tracking-widest">End until</label>
-                <input type="time" id="filter-end-before" class="w-full p-2.5 rounded-xl border-indigo-200 shadow-sm">
-            </div>
-
-            <div class="flex items-end">
-                <button id="btn-free" class="w-full bg-indigo-600 text-white p-3 rounded-xl font-bold hover:bg-indigo-700 transition active:scale-95 shadow-md">
-                    Free Only
-                </button>
-            </div>
-
-            <div class="flex items-end">
-                <button id="btn-reset" class="w-full bg-white text-slate-500 border border-slate-200 p-3 rounded-xl font-bold hover:bg-slate-100 transition">
-                    Reset
-                </button>
-            </div>
-        </div>
-
-        <table id="usiTable" class="display w-full text-sm border-none">
+        <table id="usiTable" class="display w-full text-sm">
             <thead>
                 <tr>
-                    <th class="rounded-tl-2xl">ID</th>
+                    <th>No.</th>
                     <th>Course Name</th>
                     <th>Day</th>
                     <th>Start</th>
-                    <th>End</th>
+                    <th>End until</th>
                     <th>Instructor</th>
+                    <th>Dist.</th>
                     <th>Location</th>
                     <th>Spots</th>
-                    <th class="rounded-tr-2xl">Price</th>
+                    <th>Price</th>
                 </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100"></tbody>
+            <tbody></tbody>
         </table>
     </div>
 
     <script>
         $(document).ready(function() {
-            const sortOrder = { 'Monday': 1, 'Tuesday': 2, 'Wednesday': 3, 'Thursday': 4, 'Friday': 5, 'Saturday': 6, 'Sunday': 7, 'Block': 8, 'N/A': 9 };
-            const dayMap = { 'Montag': 'Monday', 'Dienstag': 'Tuesday', 'Mittwoch': 'Wednesday', 'Donnerstag': 'Thursday', 'Freitag': 'Friday', 'Samstag': 'Saturday', 'Sonntag': 'Sunday' };
+            const startSelect = $('#filter-start-after');
+            const endSelect = $('#filter-end-before');
+            for (let h = 0; h < 24; h++) {
+                for (let m = 0; m < 60; m += 30) {
+                    const t = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                    startSelect.append(new Option(t, t)); endSelect.append(new Option(t, t));
+                }
+            }
+            startSelect.val('00:00'); endSelect.val('23:30');
 
             const table = $('#usiTable').DataTable({
-                ajax: { url: 'courses.json', dataSrc: '' },
-                dom: 'lrtip',
-                order: [[1, 'asc']], // Standard-Sortierung nach Kursname
+                ajax: { url: 'usi_data_complete.json', dataSrc: '' },
+                dom: 'lrtip', pageLength: 100,
+                lengthMenu: [[50, 100, 500, -1], [50, 100, 500, "All"]],
+                order: [[1, 'asc']],
                 columns: [
-                    { data: 'kursnummer', className: 'font-mono text-slate-400 text-xs' },
-                    {
-                        data: 'titel',
-                        className: 'col-name',
-                        render: (d, t, r) => `<a href="${r.link}" target="_blank" title="${d}" class="text-indigo-600 hover:text-orange-500 transition">${d}</a>`
-                    },
-                    {
-                        data: 'wochentag',
-                        render: function(data, type) {
-                            let translated = data.split(', ').map(day => dayMap[day] || day).join(', ');
-                            if (type === 'sort') return sortOrder[translated.split(', ')[0]] || 99;
-                            return data === "Block" ? `<span class="block-tag">${data}</span>` : translated;
-                        }
-                    },
-                    {
-                        data: 'beginn',
-                        render: (d, t, r) => (r.wochentag === "Block" || d === "Multiple") ? `<span class="italic text-indigo-400">${d}</span>` : `<strong>${d}</strong>`
-                    },
+                    { data: 'kursnummer', className: 'text-slate-400 font-mono text-xs' },
+                    { data: 'titel', className: 'col-name', render: (d, t, r) => `<a href="${r.link}" target="_blank" class="text-indigo-600">${d}</a>` },
+                    { data: 'wochentag' },
+                    { data: 'beginn', render: (d, t, r) => (r.wochentag === "Block" || d === "Multiple") ? `<span class="italic text-indigo-400">${d}</span>` : `<strong>${d}</strong>` },
                     { data: 'ende', render: (d, t, r) => (r.wochentag === "Block" || d === "Multiple") ? "" : d },
-                    {
-                        data: 'lehrer',
-                        className: 'col-instructor' // Schriftgröße jetzt normal durch Wegfall von extra CSS-Regel
-                    },
-                    {
-                        data: 'ort',
-                        className: 'col-location',
-                        render: (d) => `<span title="${d}">${d}</span>`
-                    },
-                    {
-                        data: null,
-                        render: (d) => `<span class="${d.angemeldet >= d.max_teilnehmer ? 'full' : 'available'}">${d.angemeldet} / ${d.max_teilnehmer}</span>`
-                    },
-                    {
-                        data: 'preis3',
-                        type: 'num',
-                        render: function(data, type, row) {
-                            if (type === 'sort') return parseFloat(data) || 0;
-                            return `<span class="font-mono text-xs font-semibold text-slate-600">${row.preis1}/${row.preis2}/${row.preis3}</span>`;
-                        }
-                    }
-                ],
-                pageLength: 25
+                    { data: 'lehrer', render: (d) => `<span class="click-filter">${d}</span>` },
+                    { data: 'bezirk', className: 'col-dist', render: (d) => d === 'Online' ? `<span class="online-tag">ON</span>` : d },
+                    { data: 'ort', render: (d) => `<span class="click-filter">${d}</span>` },
+                    { data: null, render: (d) => `<span class="${d.angemeldet >= d.max_teilnehmer ? 'full' : 'available'}">${d.angemeldet}/${d.max_teilnehmer}</span>` },
+                    { data: 'preis3', type: 'num', render: (d, t, r) => `<span class="font-mono text-xs text-slate-600">${r.preis1}/${r.preis2}/${r.preis3}</span>` }
+                ]
             });
 
-            // Eigene Suche
-            $('#custom-search').on('keyup', function() {
-                table.search(this.value).draw();
-            });
-
-            // Filter-Logik
             $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-                const dayFilter = $('#filter-day').val();
-                const myStart = $('#filter-start-after').val();
-                const myEnd = $('#filter-end-before').val();
-                const onlyFree = $('#btn-free').hasClass('active');
+                const days = $('.day-checkbox:checked').map(function() { return $(this).val().split(','); }).get().flat();
+                const dists = $('.dist-checkbox:checked').map(function() { return $(this).val().split(','); }).get().flat();
+                const start = $('#filter-start-after').val(), end = $('#filter-end-before').val();
+                const free = $('#check-free').is(':checked');
 
-                const rowDay = data[2];
-                const rowStart = data[3];
-                const rowEnd = data[4];
-                const spots = data[7].split(' / ');
-                const isFull = parseInt(spots[0]) >= parseInt(spots[1]);
+                const rDay = data[2], rStart = data[3], rEnd = data[4], rDist = data[6];
+                const spots = data[8].split('/'), isFull = parseInt(spots[0]) >= parseInt(spots[1]);
 
-                if (dayFilter && !rowDay.includes(dayFilter)) return false;
-                if (onlyFree && isFull) return false;
-
-                if (rowStart !== "Block" && rowStart !== "Multiple" && rowStart !== "N/A") {
-                    if (myStart && rowStart < myStart) return false;
-                    if (myEnd && rowEnd > myEnd) return false;
-                } else if (myStart || myEnd) {
-                    return false;
+                if (dists.length > 0 && !dists.some(d => rDist.includes(d))) return false;
+                if (days.length > 0 && !days.some(d => rDay.includes(d))) return false;
+                if (free && isFull) return false;
+                if (rStart && !["Block", "Multiple", "N/A"].includes(rStart)) {
+                    if (start && rStart < start) return false;
+                    if (end && rEnd > end) return false;
                 }
                 return true;
             });
 
-            $('#filter-day, #filter-start-after, #filter-end-before').on('change', () => table.draw());
-            $('#btn-free').on('click', function() { $(this).toggleClass('active bg-green-600 bg-indigo-600'); table.draw(); });
+            $('.day-checkbox, .dist-checkbox, #check-free, #filter-start-after, #filter-end-before').on('change', () => table.draw());
+            $('#custom-search').on('keyup', function() { table.search(this.value).draw(); });
+            $('#usiTable tbody').on('click', '.click-filter', function() {
+                const v = $(this).text().trim(); $('#custom-search').val(v); table.search(v).draw();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
             $('#btn-reset').on('click', function() {
-                $('#filter-day, #filter-start-after, #filter-end-before, #custom-search').val('');
-                $('#btn-free').removeClass('active bg-green-600').addClass('bg-indigo-600');
-                table.search('').draw();
+                $('.day-checkbox, .dist-checkbox, #check-free').prop('checked', false);
+                $('#filter-start-after').val('00:00'); $('#filter-end-before').val('23:30');
+                $('#custom-search').val(''); table.search('').draw();
             });
         });
     </script>
