@@ -115,7 +115,7 @@
             const dayMap = { 'Montag': 'Monday', 'Dienstag': 'Tuesday', 'Mittwoch': 'Wednesday', 'Donnerstag': 'Thursday', 'Freitag': 'Friday', 'Samstag': 'Saturday', 'Sonntag': 'Sunday' };
 
             const table = $('#usiTable').DataTable({
-                ajax: { url: 'usi_data_complete.json', dataSrc: '' },
+                ajax: { url: 'courses.json', dataSrc: '' },
                 dom: 'lrtip',
                 order: [[1, 'asc']], // Standard-Sortierung nach Kursname
                 columns: [
