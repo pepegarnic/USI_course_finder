@@ -14,10 +14,10 @@
         .col-dist { width: 6%; font-weight: 800; color: #4f46e5; text-align: center; }
         .click-filter { cursor: pointer; color: #000; text-decoration: underline; text-underline-offset: 3px; }
         .click-filter:hover { color: #4f46e5; }
-        table.dataTable thead th { background-color: #4f46e5 !important; color: white !important; text-align: left; border: none !important; }
+        table.dataTable thead th { background-color: #4f46e5 !important; color: white !important; text-align: left; padding: 12px 10px !important; border: none !important; }
         .v-line { width: 1px; background-color: #cbd5e1; margin: 0 0.8rem; }
         .dataTables_filter { display: none; }
-        .checkbox-item { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.75rem; padding: 1px 4px; border-radius: 4px; }
+        .checkbox-item { display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.75rem; padding: 1px 4px; border-radius: 4px; white-space: nowrap; }
         .checkbox-item:hover { background-color: #e0e7ff; }
         .time-select { width: 75px; padding: 4px; border-radius: 8px; border: 1px solid #c7d2fe; font-size: 0.8rem; font-weight: 600; }
         .online-tag { background-color: #dcfce7; color: #166534; padding: 2px 6px; border-radius: 6px; font-weight: bold; font-size: 0.7rem; }
@@ -34,7 +34,7 @@
                 <div class="flex-none w-full xl:w-1/4 space-y-4">
                     <div>
                         <label class="block text-xs font-black text-indigo-600 mb-1 uppercase tracking-widest">Search Course</label>
-                        <input type="text" id="custom-search" placeholder="Course, Instructor, Place..." class="w-full p-2 rounded-xl border-indigo-200 shadow-sm">
+                        <input type="text" id="custom-search" placeholder="Course, Instructor, Place..." class="w-full p-2 rounded-xl border-indigo-200">
                     </div>
                     <div class="flex items-center gap-2">
                         <span class="text-[10px] font-black text-indigo-600 uppercase">Start from:</span>
@@ -74,7 +74,7 @@
                         </div>
                         <div class="v-line self-stretch"></div>
                         <div class="space-y-0.5">
-                            <label class="checkbox-item"><input type="checkbox" class="day-checkbox" value="Friday"> Fri</label>
+                            <label class="checkbox-item"><input type="checkbox" class="day-checkbox" value="Friday"> Fr</label>
                             <label class="checkbox-item"><input type="checkbox" class="day-checkbox" value="Saturday"> Sat</label>
                             <label class="checkbox-item"><input type="checkbox" class="day-checkbox" value="Sunday"> Sun</label>
                             <label class="checkbox-item font-bold text-indigo-600"><input type="checkbox" class="day-checkbox" value="Block,N/A"> Block</label>
@@ -103,7 +103,7 @@
                     <th>Price</th>
                 </tr>
             </thead>
-            <tbody></tbody>
+            <tbody class="divide-y divide-slate-100"></tbody>
         </table>
     </div>
 
@@ -126,34 +126,44 @@
                 order: [[1, 'asc']],
                 columns: [
                     { data: 'kursnummer', className: 'text-slate-400 font-mono text-xs' },
-                    { data: 'titel', className: 'col-name', render: (d, t, r) => `<a href="${r.link}" target="_blank" class="text-indigo-600">${d}</a>` },
+                    { data: 'titel', className: 'col-name', render: (d, t, r) => `<a href="${r.link}" target="_blank" class="text-indigo-600 hover:text-orange-500">${d}</a>` },
                     { data: 'wochentag' },
                     { data: 'beginn', render: (d, t, r) => (r.wochentag === "Block" || d === "Multiple") ? `<span class="italic text-indigo-400">${d}</span>` : `<strong>${d}</strong>` },
                     { data: 'ende', render: (d, t, r) => (r.wochentag === "Block" || d === "Multiple") ? "" : d },
                     { data: 'lehrer', render: (d) => `<span class="click-filter">${d}</span>` },
-                    { data: 'bezirk', className: 'col-dist', render: (d) => d === 'Online' ? `<span class="online-tag">ON</span>` : d },
+                    {
+                        data: 'bezirk',
+                        className: 'col-dist',
+                        render: (d, t) => (t === 'display' && d === 'Online') ? `<span class="online-tag">ON</span>` : d
+                    },
                     { data: 'ort', render: (d) => `<span class="click-filter">${d}</span>` },
                     { data: null, render: (d) => `<span class="${d.angemeldet >= d.max_teilnehmer ? 'full' : 'available'}">${d.angemeldet}/${d.max_teilnehmer}</span>` },
                     { data: 'preis3', type: 'num', render: (d, t, r) => `<span class="font-mono text-xs text-slate-600">${r.preis1}/${r.preis2}/${r.preis3}</span>` }
                 ]
             });
 
+            // CORRECTED FILTER LOGIC
             $.fn.dataTable.ext.search.push(function(settings, data, dataIndex) {
-                const days = $('.day-checkbox:checked').map(function() { return $(this).val().split(','); }).get().flat();
-                const dists = $('.dist-checkbox:checked').map(function() { return $(this).val().split(','); }).get().flat();
+                const selDays = $('.day-checkbox:checked').map(function() { return $(this).val().split(','); }).get().flat();
+                const selDists = $('.dist-checkbox:checked').map(function() { return $(this).val().split(','); }).get().flat();
                 const start = $('#filter-start-after').val(), end = $('#filter-end-before').val();
                 const free = $('#check-free').is(':checked');
 
-                const rDay = data[2], rStart = data[3], rEnd = data[4], rDist = data[6];
-                const spots = data[8].split('/'), isFull = parseInt(spots[0]) >= parseInt(spots[1]);
+                const rDay = data[2], rStart = data[3], rEnd = data[4];
+                const rowData = table.row(dataIndex).data();
+                const rDist = rowData.bezirk; // Using raw data for exact district match
 
-                if (dists.length > 0 && !dists.some(d => rDist.includes(d))) return false;
-                if (days.length > 0 && !days.some(d => rDay.includes(d))) return false;
-                if (free && isFull) return false;
+                if (selDists.length > 0 && !selDists.some(d => rDist === d)) return false;
+                if (selDays.length > 0 && !selDays.some(d => rDay.includes(d))) return false;
+
+                const spots = data[8].split('/');
+                if (free && parseInt(spots[0]) >= parseInt(spots[1])) return false;
+
                 if (rStart && !["Block", "Multiple", "N/A"].includes(rStart)) {
                     if (start && rStart < start) return false;
                     if (end && rEnd > end) return false;
-                }
+                } else if (start !== '00:00' || end !== '23:30') return false;
+
                 return true;
             });
 
